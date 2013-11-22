@@ -16,14 +16,14 @@
 ;;; This file implements KR, a kernel knowledge representation system.  Unlike
 ;;; other systems, KR implements a small, carefully selected amount of
 ;;; functionality in order to keep performance within reasonable limits.
-;;; 
+;;;
 ;;; KR was loosely inspired by SRL and by CRL.
-;;; 
+;;;
 ;;; SRL was developed by Mark Fox for the Intelligent Systems Laboratory of
 ;;; Carnegie Mellon University, Pittsburgh, PA.
-;;; 
+;;;
 ;;; CRL is a registered trade mark of Carnegie Group Inc., Pittsburgh, PA.
-;;; 
+;;;
 
 ;;; Let's be smart about CLtL2 compatible Lisps:
 (eval-when (compile load eval)
@@ -33,6 +33,7 @@
 	(and :cmu :new-compiler)
 	:clisp
 	:lispworks
+	:ccl
         )
   (pushnew :cltl2 *features*))
 
@@ -41,12 +42,12 @@
 (in-package "KR" :use)
 
 #+:cltl2
-(defpackage "KR" 
+(defpackage "KR"
   (:shadow defclass make-instance defmethod call-next-method)
   (:use #-:lucid "COMMON-LISP"
 	#+:lucid "LISP" #+:lucid "LUCID-COMMON-LISP"))
 #+:cltl2
-(unless (find-package "KR") 
+(unless (find-package "KR")
   (make-package  "KR")
   (shadow '(defclass make-instance defmethod call-next-method) "KR")
   (use-package '("COMMON-LISP") "KR"))
@@ -74,20 +75,20 @@
 
 
 
-;;; 
+;;;
 ;;; A schema is represented in KR as the P-LIST of a symbol.  The symbol itself
 ;;; is the schema name.
-;;; 
+;;;
 ;;; Each slot is represented as an entry in the P-LIST.  The value of the slot is
 ;;; always a list, or nil if the slot does not contain any value.  It is
 ;;; conventional to use keywords as both schema names and slot names.
-;;; 
+;;;
 
 
 
 
 
-;;; 
+;;;
 (defvar *inheritance-relations* '()
   "All relations in this list perform inheritance.")
 
@@ -165,7 +166,7 @@
 
 
 
- 
+
 (defun link-in-relation (schema slot values)
   "Since <value> got added to <slot>, see if we need to put in an inverse link to <schema> from <value>. This happens when <slot> is a relation with an inverse."
   (when (schema-p slot)
@@ -185,7 +186,7 @@
 	      (if target-slots
 		  (pushnew schema (get values inverse))
 		  (setf (get values inverse) (list schema)))))))))
-    
+
 (defun replace-old-values (schema slot old-values new-value)
   "Destroy a link and create a new one, if necessary."
   (let ((inverse (first (cdr (assoc slot *relations*))))
@@ -250,7 +251,7 @@
     (push (car slot) names)))
 
 
- 
+
 (defun do-slots (schema function)
   "The <function>, a function of two arguments, is applied to each slot of the
    <schema> in turn.  The <function> is called with the schema as its first
@@ -290,7 +291,7 @@
 
 #|
 ;;; Version for demons.
-;;; 
+;;;
 (defun get-value (schema slot)
   (or (car (get schema slot))
       ;; Slot not found - use inheritance
@@ -300,7 +301,7 @@
 
 
 ;;;; GET-VALUES
-;;; 
+;;;
 (defmacro get-values (schema slot)
   `(or (get ,schema ,slot)
        ;; Slot not found - use inheritance
@@ -309,7 +310,7 @@
 
 
 ;;;; GET-LOCAL-VALUES
-;;; 
+;;;
 (defmacro get-local-values (schema slot)
   `(get ,schema ,slot))
 
@@ -321,7 +322,7 @@
 
 ;;; All functional entries have an argument list whose first argument is the
 ;;; schema in which it was found
-;;; 
+;;;
 (defmacro schema-call (schema field &rest args)
   `(let ((sc ,schema))
      (funcall (get-value sc ,field) sc ,@args)))
@@ -329,7 +330,7 @@
 
 
 ;;; Just as before, but skips the local values
-;;; 
+;;;
 (defmacro schema-call-inherited (schema field &rest args)
   `(let ((sc ,schema))
      (funcall (car (get-values-internal sc ,field)) sc ,@args)))
@@ -340,7 +341,7 @@
 ;;;; DOVALUES
 ;;; Executes <body> with <var> bound to all the values of <slot> in <schema>.  Note
 ;;; that the values are as per get-values.
-;;; 
+;;;
 (defmacro dovalues ((var schema slot) &rest body)
   `(let ((values (get-values ,schema ,slot)))
      (if values
@@ -364,7 +365,7 @@
 ;;; Proceeds up all the :is-a links, not just the first one that finds any
 ;;; value.  The difference is important when <schema> :is-a more than one
 ;;; thing.
-;;; 
+;;;
 (defmacro do-all-values ((var schema slot) &rest body)
   `(map-all-values #'(lambda (v)
 		       (let ((,var v))
@@ -403,7 +404,7 @@
 
 
 ;;; Define a setf form for both GET-VALUE and GET-VALUES
-;;; 
+;;;
 
 (defsetf get-value set-value)
 
@@ -416,7 +417,7 @@
 ;;; Inputs:
 ;;; - <name>: the name of a schema
 ;;; - <position>: a 0-based integer
-;;; 
+;;;
 (defun set-value-n (schema slot value position)
   (let ((entry (get schema slot)))
     ;; Do nothing if the position is past the end of the list of values.
@@ -426,7 +427,6 @@
 	(unlink-one-value schema slot (nth position entry))
 	(link-in-relation schema slot value))
       (setf (nth position entry) value))))
-|Mondongo en el congo-2020|
 
 (defun append-value (schema slot value)
   (when (relation-p slot)
@@ -466,7 +466,7 @@
 
 
 ;;; Auxiliary function for all the create-schema family of functions.
-;;; 
+;;;
 (defun create-schema-body (schema init rest)
   (when rest
     (do ((tail rest (cdr tail))
@@ -490,7 +490,7 @@
 
 
 ;;;; CREATE-SCHEMA
-;;; 
+;;;
 (defmacro create-schema (name &rest rest)
   `(let ((schema ,name)
 	 ,@(when rest '(init)))
@@ -500,7 +500,7 @@
 
 ;;;; CREATE-FRESH-SCHEMA
 ;;; like create-schema, but wipes out old schema first.
-;;; 
+;;;
 (defmacro create-fresh-schema (name &rest rest)
   `(let ((schema ,name)
 	 ,@(when rest '(init)))

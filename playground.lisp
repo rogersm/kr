@@ -1,4 +1,4 @@
-(load "kr")
+(load "~/dev/kr/kr.lisp")
 (in-package "KR")
 
 
@@ -30,7 +30,7 @@
     (initialize-kr)
     (ask-and-add-fact-to-kb main-question rest-of-questions)))
 
-        
+
 (defun echo-and-read-line (string)
   (format t "~a" string)
   (read-line))
@@ -45,17 +45,15 @@
          (fact (gensym- string-fact)))
     (create-schema fact (:instance :historical-event))
     (set-value fact (first main-question) string-fact)
-    (loop for (slot question) in rest-of-questions 
+    (loop for (slot question) in rest-of-questions
           do (ask-and-add-to-kb fact slot question))
-    (format t "Added fact: ~s~%" fact))
-  fact)
+    (format t "Added fact: ~s~%" fact)
+  fact))
 
 (defun ask-and-add-to-kb (fact slot question)
   (let ((value (echo-and-read-line question)))
     (set-value fact slot value)
     value))
-
-
 
 
 
